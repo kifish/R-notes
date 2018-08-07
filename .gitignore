@@ -14,6 +14,12 @@
 # Output files from R CMD check
 /*.Rcheck/
 
+.ipynb_checkpoints
+
+.idea
+
+
+
 # RStudio files
 .Rproj.user/
 

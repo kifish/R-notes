@@ -6,6 +6,7 @@ library(ggiraph)
 library(maptools)
 
 
+
 setwd('F:/R-notes/plot_map/')
 my_map<-readShapePoly("bou2_4p.shp")
 

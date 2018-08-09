@@ -1,0 +1,71 @@
+---
+title: "r_plot_map2"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## R Markdown
+
+This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
+
+When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
+
+reference:
+![How to plot a Taiwan Map colored with Population by ggplot2](http://www.rpubs.com/OzuShi/348822 )
+
+
+![R语言中国地图绘制](https://zhuanlan.zhihu.com/p/26708368)
+```{r cars}
+library(maptools)
+library(ggplot2)
+library(plyr)
+library(dplyr)
+
+setwd("f:/R-notes/plot_map/") #确定文件路径
+
+china_map <-readShapePoly("bou2_4p.shp") # 读取地图空间数据
+
+china_map <- fortify(china_map) #转化为数据框
+
+#china_data<-read.csv("chinaprovincecity.csv") #读取省会城市坐标
+
+ggplot()+
+  
+  geom_polygon(data=china_map, aes(x=long, y=lat, group=group),fill="grey95", colour="grey60",size=0.25)+ #中国地图
+  
+  #geom_point(data=china_data, aes(x = jd,y = wd),size=4,fill="black", alpha=1,shape=21, colour="white")+ #散点图
+  
+coord_map("polyconic") 
+# + theme_nothing()#图表元素设定 这一行代码过时了
+```
+
+![R语言绘制地图](https://segmentfault.com/a/1190000002890587)
+```{r}
+library(maptools);
+x=readShapePoly('bou2_4p.shp')
+plot(x);
+```
+>，我们往往会根据自己的需要对地图中的某些省份着以特定的颜色，这时就可以通过调节plot命令中的col参数来予以实现。然而为了清楚地说明这部分的内容，我需要插播一段R绘制地图的原理。
+在绘制地图时，每一个省市自治区或者岛屿都是用一个多边形来表示的。之前的GIS数据，其实就是提供了每一个行政区其多边形逐点的坐标，然后R软件通过顺次连接这些坐标，就绘制出了一个多边形区域。在上面的数据中，一共包含了925个多边形的信息，之所以有这么多是因为一些省份有很多小的附属岛屿。在这925个多边形中，每一个都对应一个唯一的ID，编号分别从1到25。
+
+实际上python中用basemap画地图也是这个原理.多边形的个数不一定是925个,应该是900+.
+>plot命令中的fg参数在本例中应该是一个长度为925的向量，其第i个分量的取值就代表了地图中第i个多边形的颜色。一个简单的尝试是运行下面这个命令看看效果：
+
+
+```{r}
+plot(x,col=gray(924:0/924));
+```
+
+
+## Including Plots
+
+You can also embed plots, for example:
+
+```{r pressure, echo=FALSE}
+plot(pressure)
+```
+
+Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.

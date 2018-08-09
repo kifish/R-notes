@@ -1,27 +1,19 @@
 ---
-title: "r_plot_map2"
-output: html_document
+title: "r_plot_map"
+output:
+  html_document: default
+  pdf_document: default
 ---
-
-## R Markdown
-
-This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
-
-When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
-
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
-
-
-
-reference:
-[How to plot a Taiwan Map colored with Population by ggplot2](http://www.rpubs.com/OzuShi/348822 )
-
-
+reference:    
+[How to plot a Taiwan Map colored with Population by ggplot2](http://www.rpubs.com/OzuShi/348822 )  
 [R语言中国地图绘制](https://zhuanlan.zhihu.com/p/26708368)
+[用R画中国地图并标注城市位置](http://f.dataguru.cn/thread-330558-1-1.html)
+
 ```{r cars}
 library(maptools)
 library(ggplot2)
@@ -52,6 +44,8 @@ library(maptools);
 mapdata=readShapePoly('bou2_4p.shp')
 plot(mapdata);
 ```
+
+
 >我们往往会根据自己的需要对地图中的某些省份着以特定的颜色，这时就可以通过调节plot命令中的col参数来予以实现。然而为了清楚地说明这部分的内容，我需要插播一段R绘制地图的原理。
 在绘制地图时，每一个省市自治区或者岛屿都是用一个多边形来表示的。之前的GIS数据，其实就是提供了每一个行政区其多边形逐点的坐标，然后R软件通过顺次连接这些坐标，就绘制出了一个多边形区域。在上面的数据中，一共包含了925个多边形的信息，之所以有这么多是因为一些省份有很多小的附属岛屿。在这925个多边形中，每一个都对应一个唯一的ID，编号分别从1到25。
 
@@ -68,7 +62,7 @@ plot(mapdata,col=gray(924:0/924));
 
 
 ```{r}
-# mapdata[2]; # mapdata$att.data
+# mapdata[2]; # mapdata@data
 # mapdata[2][1,]
 ```
 
@@ -107,23 +101,53 @@ which(x == y) # 返回相等元素的索引
 
 
 Embed this directly in the Rmarkdown script that contains the Chinese character comment(s):
-
 https://stackoverflow.com/questions/41717781/warning-input-string-not-available-in-this-locale
-
-#Sys.setlocale('LC_ALL','C')
-# colIndex :925维的向量,不上色的地方对应的元素 存的是0,
-# 上色的地方对应的元素 存的是要上的颜色的对应的索引,
-# 注:索引从1开始
-
 ```{r}
-
+#Sys.setlocale('LC_ALL','C')
 getColor=function(mapdata,provname,provcol,othercol){
   f = function(x,y) ifelse(x %in% y,which(y==x),0);
+  # x是一个向量,y也是一个向量,如果x与y的对应位置的元素相同,则填充该元素在y中的索引,若不相同则记为0
   colIndex=sapply(mapdata@data$NAME,f,provname);
+  #colIndex :925维的向量,不上色的地方对应的元素 存的是0,
+  #上色的地方对应的元素 存的是要上的颜色的对应的索引,
+  #注:索引从1开始
   color_vec=c(othercol,provcol)[colIndex+1];
   return(color_vec);
 }
 ```
+
+这一行比较难理解
+```r
+ f = function(x,y) ifelse(x %in% y,which(y==x),0);
+```
+
+
+用python改写下
+```python
+def f(x,y):
+  """
+  y == unique(y)
+  """
+  res = []
+  for item in x:
+    has_equal_num = False
+    for idx,item_ in enumerate(y):
+      if item_ == item:
+        res.append(idx+1)
+        has_equal_num = True
+        break
+    if not has_equal_num:
+      res.append(0)
+```
+
+联想python中pandas的`df.['列1']apply(f)`,对列中的每一行并行应用函数f()
+
+```r
+f = function(x,y) ifelse(x %in% y,which(y==x),0);
+sapply(mapdata@data$NAME,f,provname)
+```
+这两行配合起来,相当于对x的每个元素并行使用f函数,且参数y皆为provname,最后将每个函数调用返回的结果按顺序组装成向量
+
 
 其中mapdata是存放地图数据的变量，在上面的例子中就是x，provname是需要改变颜色的地区的名称，provcol是对应于provname的代表颜色的向量（名称和数字均可），othercol是其它地区的颜色。举例如下：
 
@@ -155,12 +179,12 @@ for idx in t:
 ```{r}
 provname=c("北京市","天津市","上海市","重庆市");
 provcol=c("red","green","yellow","purple");
-plot(mapdata,col=getColor(x,provname,provcol,"white"));
+plot(mapdata,col=getColor(mapdata,provname,provcol,"white"));
 ```
 
 
-注意provname一定要写地区的全称，写法可以参照下面这条命令生成的向量：
-as.character(na.omit(unique(mapdata@data$NAME)));
+注意provname一定要写地区的全称，写法可以参照下面这条命令生成的向量：     
+as.character(na.omit(unique(mapdata@data$NAME)));     
 
 
 由此生成的向量有33个元素，少了澳门特别行政区，这是这个数据中的一块瑕疵。在x$att.data的第899行有一个NA，不知道它代表的是否就是澳门。
@@ -181,17 +205,17 @@ pop=c(1633,1115,6943,3393,2405,4298,2730,3824,1858,7625,
                 4768,845,2816,8127,3762,4514,284,3748,2617,
                 552,610,2095,2296,693);
 provcol=rgb(red=1-pop/max(pop)/2,green=1-pop/max(pop)/2,blue=0);
-plot(mapdata,col=getColor(x,provname,provcol,"white"),xlab="",ylab="");
+plot(mapdata,col=getColor(mapdata,provname,provcol,"white"),xlab="",ylab="");
 ```
 
 
 
-局部
+局部    
 此外，在绘制地图的过程中，还有一个比较有用的参数是recs，它是一个由多边形ID组成的向量，表示在地图中只画出这些ID所代表的区域。利用这个参数，就可以画出某一部分的地图，例如下面的例子是我国中部六省的地图：
 
 
 
-http://f.dataguru.cn/thread-330558-1-1.html
+http://f.dataguru.cn/thread-330558-1-1.html(用R画中国地图并标注城市位置)
 
 
 ```{r}
@@ -203,24 +227,12 @@ getID=function(mapdata,provname){
 
 
 midchina=c("河南省","山西省","湖北省","安徽省","湖南省","江西省");
-plot(mapdata,recs=getID(mapdata,midchina),col="blue",ol="white",xlab="",ylab="");
+#plot(mapdata,recs=getID(mapdata,midchina),col="blue",ol="white",xlab="",ylab="");
 ```
 
-新版本的maptools包的绘图函数已经取消了recs这个参数
+新版本的maptools包的绘图函数已经取消了recs这个参数,替代方法如下:
 
 ```{r}
 midchina=c("河南省","山西省","湖北省","安徽省","湖南省","江西省");
 plot(mapdata,col=getColor(mapdata,midchina,rep('blue',6),'white'),border="white",xlab="",ylab="")
 ```
-
-
-
-## Including Plots
-
-You can also embed plots, for example:
-
-```{r pressure, echo=FALSE}
-plot(pressure)
-```
-
-Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.

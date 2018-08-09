@@ -10,5 +10,6 @@ getColor=function(mapdata,provname,provcol,othercol){
 }
 
 
-#midchina=c("河南省","山西省","湖北省","安徽省","湖南省","江西省");
-#plot(mapdata,col=getColor(mapdata,midchina,rep('blue',6),'white'),border="white",xlab="",ylab="")
+provname=c("北京市","天津市","上海市","重庆市");
+provcol=c("red","green","yellow","purple");
+plot(mapdata,col=getColor(x,provname,provcol,"white"))

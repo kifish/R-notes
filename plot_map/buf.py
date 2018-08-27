@@ -1,68 +1,53 @@
-import numpy as np
-import pandas as pd
-import matplotlib.pyplot as plt
-import matplotlib
-from matplotlib.patches import Polygon
-from mpl_toolkits.basemap import Basemap
-from matplotlib.collections import PatchCollection
-import matplotlib.patches as mpatches
 
-font = {'family': 'SimHei'}
-matplotlib.rc('font', **font)
-fig = plt.figure()
-ax = fig.add_subplot(111)
-basemap = Basemap(llcrnrlon=75, llcrnrlat=10, urcrnrlon=150,
-                  urcrnrlat=55, projection='poly', lon_0=116.65, lat_0=40.02, ax=ax)
-basemap.readshapefile(shapefile="./bou2_4p", name="china")
-basemap.readshapefile(shapefile="./gadm36_TWN_2", name="taiwan")
-mapData = pd.DataFrame(basemap.china_info)
-mapData["NAME"] = mapData["NAME"].map(
-    lambda x: x.decode("gbk") if len(x) != 0 else x)
-sheet = pd.read_excel('各单位地理位置分布.xlsx', sheet_name='Sheet4')
-sheet = sheet.replace(['-Inf', 'Inf'], 'null')
-sheet = sheet.fillna(0)
+import re
+
+def strQ2B(ustring):
+    """全角转半角"""
+    ustring = str(ustring)
+    rstring = ""
+    for uchar in ustring:
+        inside_code = ord(uchar)
+        if inside_code == 12288:  # 全角空格直接转换
+            inside_code = 32
+        elif (inside_code >= 65281 and inside_code <= 65374):  # 全角字符（除空格）根据关系转化
+            inside_code -= 65248
+        rstring += chr(inside_code)
+    return rstring
 
 
-def fix(name):
-    name = name[:2]
-    if name == '黑龍':
-        name = '黑龙'
-    return name
-statenames = list(map(fix, mapData["NAME"].tolist()))
 
-colors = {}
-location_colors = {
-    '华东': 'brown',
-    '华北': 'r',
-    '华南': 'g',
-    '华中': 'lightyellow',
-    '东北': 'cyan',
-    '西北': 'orchid',
-    '西南': 'lightpink'
-}
 
-for _, row in sheet.iterrows():
-    k1 = '省'
-    k2 = '地区'
-    colors[row[k1][:2]] = location_colors[row[k2]]
+pattern1 = re.compile(r'混合[性型].{0,5}癌',re.M)
+pattern2 = re.compile(r'小细胞癌',re.M)
+pattern3 = re.compile(r'大细胞癌|大细胞神经内分泌癌',re.M)
+pattern4 = re.compile(r'鳞癌|鳞状细胞癌',re.M)
+pattern5 = re.compile(r'腺癌',re.M)
+pattern_fq = re.compile(r'(.*?)([^\u4E00-\u9FA5]*[期]*)',re.M)
+pattern_chinese = re.compile(r'[\u4E00-\u9FA5]+',re.M)
+pattern_fq2 = re.compile(r'([^a-zA-Z0-9]*)([^\u4E00-\u9FA5]*[期]*)',re.M)
 
-def plotProvince(row):
-    province = row['省'][:2]
-    color = colors[province]
-    patches = []
-    for province_, shape in zip(statenames, basemap.china):
-        if province_ == province:
-            patches.append(Polygon(xy=np.array(shape), closed=True))
-    ax.add_collection(PatchCollection(patches, facecolor=color,
-                                      edgecolor=color, linewidths=1., zorder=2))
 
-sheet.apply(lambda row: plotProvince(row), axis=1)
+def judge2(text):
+    text = strQ2B(text)
+    seqs = text.split(',')
+    if len(seqs) >= 2:
+        if pattern_chinese.search(seqs[0]):
+            seqs = seqs[1:]
+    text = ''.join(seqs)
+    text = strQ2B(text)
+    res = '未知'
+    if pattern_fq.search(text):
+        res = pattern_fq.search(text).group()
+        if res == '' or res == 'nan':
+            res = '未知'
 
-patchs = []
-for location, color in location_colors.items():
-    patch = mpatches.Patch(color=color, label=location)
-    patchs.append(patch)
-plt.legend(handles=patchs)
+    return res
 
-plt.axis("off")  # 关闭坐标轴
-plt.show()  # 显示图表
+
+
+test_str = '混合性癌（小细胞癌，鳞癌）T3N0MO.IIa期'
+print(judge2(test_str))
+print(pattern_fq.search(test_str).group(0))
+print(pattern_fq.search(test_str))
+print(pattern_fq2.search(test_str))
+print(pattern_fq2.search(test_str).group(2))
